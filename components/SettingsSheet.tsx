@@ -1,14 +1,12 @@
-import type { AltitudeUnit, DataMode, DistanceUnit } from "@/types/aircraft";
+import type { AltitudeUnit, DistanceUnit } from "@/types/aircraft";
 import { CloseIcon } from "./Icons";
 
 interface SettingsSheetProps {
   open: boolean;
-  mode: DataMode;
   distanceUnit: DistanceUnit;
   altitudeUnit: AltitudeUnit;
   showAircraftType: boolean;
   showFlightPath: boolean;
-  onModeChange: (mode: DataMode) => void;
   onDistanceUnitChange: (unit: DistanceUnit) => void;
   onAltitudeUnitChange: (unit: AltitudeUnit) => void;
   onShowAircraftTypeChange: (show: boolean) => void;
@@ -66,12 +64,10 @@ function Toggle({ label, description, checked, onChange }: {
 
 export function SettingsSheet({
   open,
-  mode,
   distanceUnit,
   altitudeUnit,
   showAircraftType,
   showFlightPath,
-  onModeChange,
   onDistanceUnitChange,
   onAltitudeUnitChange,
   onShowAircraftTypeChange,
@@ -100,15 +96,9 @@ export function SettingsSheet({
             <CloseIcon width={20} height={20} />
           </button>
         </div>
-        <div className="setting-group">
-          <span className="setting-label">Aircraft data</span>
-          <SegmentedControl
-            value={mode}
-            label="Aircraft data mode"
-            options={[{ value: "demo", label: "Demo" }, { value: "live", label: "Live" }]}
-            onChange={onModeChange}
-          />
-          <p className="setting-help">Live uses nearby OpenSky traffic. Demo stays available without a connection.</p>
+        <div className="live-source-row">
+          <span className="source-dot" aria-hidden="true" />
+          <span><strong>Live aircraft data</strong><small>Nearby positions from OpenSky</small></span>
         </div>
         <div className="setting-grid">
           <div className="setting-group">

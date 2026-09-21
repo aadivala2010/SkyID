@@ -9,12 +9,11 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:3000`. Demo Mode works without credentials or internet aircraft data. On iPhone, camera and motion access require a secure HTTPS page.
+Open `http://localhost:3000`. On iPhone, use the deployed HTTPS page so camera, location, and motion permissions can work.
 
-## Modes
+## Live data
 
-- **Demo:** moving simulated aircraft around the current or simulated location.
-- **Live:** anonymous nearby state vectors from the free OpenSky Network endpoint, with an automatic and clearly labeled Demo fallback.
+SkyID uses your current location to request anonymous nearby state vectors from the free OpenSky Network endpoint. There is no simulated traffic or fallback data.
 
 Camera frames stay on the device. Precise location is not stored.
 

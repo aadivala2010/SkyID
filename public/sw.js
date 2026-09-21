@@ -1,4 +1,4 @@
-const CACHE = "skyid-v1";
+const CACHE = "skyid-v2";
 const APP_SHELL = ["/", "/manifest.webmanifest", "/icon.svg", "/maskable-icon.svg"];
 
 self.addEventListener("install", (event) => {

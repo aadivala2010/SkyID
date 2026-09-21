@@ -1,7 +1,7 @@
-import type { DataMode } from "@/types/aircraft";
+export type LiveStatus = "connecting" | "live" | "offline";
 
 interface StatusBarProps {
-  mode: DataMode;
+  liveStatus: LiveStatus;
   gpsLabel: string;
   heading?: number;
   preciseOrientation: boolean;
@@ -9,7 +9,7 @@ interface StatusBarProps {
 }
 
 export function StatusBar({
-  mode,
+  liveStatus,
   gpsLabel,
   heading,
   preciseOrientation,
@@ -23,9 +23,9 @@ export function StatusBar({
           SkyID
         </span>
         <span className="status-divider" />
-        <span className={`source-badge source-${mode}`}>
+        <span className={`source-badge source-${liveStatus}`}>
           <span className="source-dot" />
-          {mode.toUpperCase()}
+          {liveStatus.toUpperCase()}
         </span>
         <span className="gps-label">{gpsLabel}</span>
         <span className="heading-label" title={heading === undefined ? "Heading unavailable" : `Heading ${Math.round(heading)} degrees`}>

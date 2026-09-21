@@ -37,6 +37,8 @@ interface AircraftInfoCardProps {
   showAircraftType: boolean;
   candidateCount: number;
   onOpenList: () => void;
+  emptyEyebrow?: string;
+  emptyTitle?: string;
 }
 
 export function AircraftInfoCard({
@@ -47,14 +49,16 @@ export function AircraftInfoCard({
   showAircraftType,
   candidateCount,
   onOpenList,
+  emptyEyebrow = "SCANNING SKY",
+  emptyTitle = "No aircraft nearby",
 }: AircraftInfoCardProps) {
   if (!aircraft) {
     return (
       <section className="aircraft-card glass-strong empty-card" aria-live="polite">
         <span className="scan-ring" />
         <div>
-          <p className="eyebrow">SCANNING SKY</p>
-          <h2>No aircraft nearby</h2>
+          <p className="eyebrow">{emptyEyebrow}</p>
+          <h2>{emptyTitle}</h2>
         </div>
       </section>
     );

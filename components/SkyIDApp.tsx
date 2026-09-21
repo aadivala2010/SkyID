@@ -2,8 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { calculateAircraftScreenPosition } from "@/lib/ar/projection";
-import { LiveAircraftProvider } from "@/lib/aircraft/LiveAircraftProvider";
-import { MockAircraftProvider } from "@/lib/aircraft/MockAircraftProvider";
+import { getNearbyAircraft } from "@/lib/aircraft/LiveAircraftProvider";
 import { getMatchLabel, rankAircraftCandidates } from "@/lib/aircraft/matching";
 import { watchLocation, type LocationReading } from "@/lib/sensors/location";
 import {
@@ -12,28 +11,22 @@ import {
   requestOrientationPermission,
   type OrientationReading,
 } from "@/lib/sensors/orientation";
-import type { Aircraft, AltitudeUnit, DataMode, DistanceUnit, ObserverPosition } from "@/types/aircraft";
+import type { Aircraft, AltitudeUnit, DistanceUnit, ObserverPosition } from "@/types/aircraft";
 import { ARAircraftMarker } from "./ARAircraftMarker";
 import { AircraftInfoCard } from "./AircraftInfoCard";
 import { AircraftList } from "./AircraftList";
 import { BottomControls } from "./BottomControls";
 import { CalibrationOverlay } from "./CalibrationOverlay";
 import { CameraView } from "./CameraView";
-import { DesktopSimulator } from "./DesktopSimulator";
+import { LocationIcon } from "./Icons";
 import { SettingsSheet } from "./SettingsSheet";
 import { StatusBar } from "./StatusBar";
 
-const DEFAULT_LOCATION: ObserverPosition = {
-  latitude: 40.7128,
-  longitude: -74.006,
-  altitude: 10,
-};
-
 type LocationStatus = "locating" | "ready" | "denied" | "unavailable";
 type OrientationStatus = "waiting" | "needs-permission" | "ready" | "approximate" | "denied" | "unavailable";
+type AircraftDataStatus = "waiting-location" | "loading" | "ready" | "offline";
 
 export function SkyIDApp() {
-  const [mode, setMode] = useState<DataMode>("demo");
   const [distanceUnit, setDistanceUnit] = useState<DistanceUnit>("mi");
   const [altitudeUnit, setAltitudeUnit] = useState<AltitudeUnit>("ft");
   const [showAircraftType, setShowAircraftType] = useState(true);
@@ -43,45 +36,45 @@ export function SkyIDApp() {
   const [orientationStatus, setOrientationStatus] = useState<OrientationStatus>("waiting");
   const [orientation, setOrientation] = useState<OrientationReading>();
   const [aircraft, setAircraft] = useState<Aircraft[]>([]);
+  const [aircraftDataStatus, setAircraftDataStatus] = useState<AircraftDataStatus>("waiting-location");
   const [selectedIcao, setSelectedIcao] = useState<string>();
   const [manualSelection, setManualSelection] = useState(false);
   const [aircraftListOpen, setAircraftListOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [calibrationOpen, setCalibrationOpen] = useState(false);
   const [notice, setNotice] = useState<string>();
-  const [desktopSimulation, setDesktopSimulation] = useState(false);
-  const [manualHeading, setManualHeading] = useState(182);
-  const [manualPitch, setManualPitch] = useState(12);
-  const [manualLocation, setManualLocation] = useState<ObserverPosition>(DEFAULT_LOCATION);
-  const [trafficOffset, setTrafficOffset] = useState(0);
+  const [locationRetryKey, setLocationRetryKey] = useState(0);
+  const [dataRetryKey, setDataRetryKey] = useState(0);
   const [viewport, setViewport] = useState({ width: 390, height: 844 });
   const orientationCleanup = useRef<() => void>(() => undefined);
 
   useEffect(() => {
     const updateViewport = () => setViewport({ width: window.innerWidth, height: window.innerHeight });
-    const query = window.matchMedia("(pointer: fine) and (min-width: 800px)");
-    const updateDesktop = () => setDesktopSimulation(query.matches);
     updateViewport();
-    updateDesktop();
     window.addEventListener("resize", updateViewport);
-    query.addEventListener("change", updateDesktop);
     if (process.env.NODE_ENV === "production") {
       navigator.serviceWorker?.register("/sw.js").catch(() => undefined);
     }
     return () => {
       window.removeEventListener("resize", updateViewport);
-      query.removeEventListener("change", updateDesktop);
     };
   }, []);
 
-  useEffect(() =>
-    watchLocation(
+  useEffect(() => {
+    return watchLocation(
       (reading) => {
         setLocation(reading);
         setLocationStatus("ready");
+        setAircraftDataStatus((status) => status === "waiting-location" ? "loading" : status);
       },
-      (error) => setLocationStatus("code" in error && error.code === 1 ? "denied" : "unavailable"),
-    ), []);
+      (error) => {
+        setLocation(undefined);
+        setAircraft([]);
+        setAircraftDataStatus("waiting-location");
+        setLocationStatus("code" in error && error.code === 1 ? "denied" : "unavailable");
+      },
+    );
+  }, [locationRetryKey]);
 
   const startOrientation = useCallback(() => {
     orientationCleanup.current();
@@ -93,7 +86,6 @@ export function SkyIDApp() {
   }, []);
 
   useEffect(() => {
-    if (desktopSimulation) return;
     const initialStart = window.setTimeout(() => {
       if (needsOrientationPermission()) setOrientationStatus("needs-permission");
       else startOrientation();
@@ -107,7 +99,7 @@ export function SkyIDApp() {
       window.clearTimeout(timeout);
       orientationCleanup.current();
     };
-  }, [desktopSimulation, startOrientation]);
+  }, [startOrientation]);
 
   const enableOrientation = useCallback(async () => {
     if (orientationStatus === "approximate" || orientationStatus === "ready") {
@@ -122,35 +114,37 @@ export function SkyIDApp() {
     }
   }, [orientationStatus, startOrientation]);
 
-  const observer = desktopSimulation ? manualLocation : location ?? DEFAULT_LOCATION;
-  const heading = desktopSimulation ? manualHeading : orientation?.heading;
-  const pitch = desktopSimulation ? manualPitch : orientation?.pitch ?? 0;
+  const observer: ObserverPosition | undefined = location;
+  const latitude = location?.latitude;
+  const longitude = location?.longitude;
+  const heading = orientation?.heading;
+  const pitch = orientation?.pitch ?? 0;
 
   useEffect(() => {
+    if (locationStatus !== "ready" || latitude === undefined || longitude === undefined) return;
+
     let active = true;
-    const provider = mode === "demo"
-      ? new MockAircraftProvider(trafficOffset)
-      : new LiveAircraftProvider();
 
     const refresh = async () => {
-      if (mode === "live" && locationStatus !== "ready") return;
       try {
-        const nearby = await provider.getNearbyAircraft(observer.latitude, observer.longitude);
-        if (active) setAircraft(nearby);
+        const nearby = await getNearbyAircraft(latitude, longitude);
+        if (!active) return;
+        setAircraft(nearby);
+        setAircraftDataStatus("ready");
       } catch {
         if (!active) return;
-        setMode("demo");
-        setNotice("Live data is unavailable. Demo traffic is active.");
+        setAircraft([]);
+        setAircraftDataStatus("offline");
       }
     };
 
     void refresh();
-    const interval = window.setInterval(refresh, mode === "demo" ? 1_200 : 12_000);
+    const interval = window.setInterval(refresh, 12_000);
     return () => {
       active = false;
       window.clearInterval(interval);
     };
-  }, [locationStatus, mode, observer.latitude, observer.longitude, trafficOffset]);
+  }, [dataRetryKey, latitude, longitude, locationStatus]);
 
   useEffect(() => {
     if (!notice) return;
@@ -170,7 +164,7 @@ export function SkyIDApp() {
   }, []);
 
   const ranked = useMemo(
-    () => rankAircraftCandidates(aircraft, observer, heading, pitch),
+    () => observer ? rankAircraftCandidates(aircraft, observer, heading, pitch) : [],
     [aircraft, heading, observer, pitch],
   );
 
@@ -204,40 +198,37 @@ export function SkyIDApp() {
 
   const recenter = () => {
     setManualSelection(false);
-    if (desktopSimulation && ranked[0]) {
-      setManualHeading(ranked[0].bearing);
-      setManualPitch(ranked[0].elevation);
-    }
     setNotice("Tracking recentered on the best geometry.");
-  };
-
-  const changeMode = (nextMode: DataMode) => {
-    if (nextMode === "live" && locationStatus !== "ready") {
-      setMode("demo");
-      setNotice("Live mode needs precise location. Demo remains active.");
-      return;
-    }
-    setMode(nextMode);
-    setNotice(nextMode === "live" ? "Connecting to live OpenSky traffic…" : "Demo traffic is active.");
   };
 
   const gpsLabel = locationStatus === "ready" && location
     ? `GPS ±${Math.round(location.accuracy)}m`
-    : mode === "demo"
-      ? "SIM LOCATION"
-      : locationStatus === "denied"
-        ? "GPS DENIED"
-        : "GPS SEARCHING";
+    : locationStatus === "denied"
+      ? "GPS DENIED"
+      : "GPS SEARCHING";
+  const liveStatus = aircraftDataStatus === "ready"
+    ? "live"
+    : aircraftDataStatus === "offline"
+      ? "offline"
+      : "connecting";
+  const needsLocation = locationStatus !== "ready";
+  const emptyCardCopy = needsLocation
+    ? { eyebrow: "LIVE LOCATION", title: "Waiting for your location" }
+    : aircraftDataStatus === "loading"
+      ? { eyebrow: "LIVE DATA", title: "Loading nearby aircraft" }
+      : aircraftDataStatus === "offline"
+        ? { eyebrow: "LIVE DATA", title: "Aircraft data unavailable" }
+        : { eyebrow: "SCANNING SKY", title: "No live aircraft nearby" };
 
   return (
     <main className="app-shell">
       <CameraView />
       <div className="camera-frame" aria-hidden="true" />
       <StatusBar
-        mode={mode}
+        liveStatus={liveStatus}
         gpsLabel={gpsLabel}
         heading={heading}
-        preciseOrientation={desktopSimulation || orientationStatus === "ready"}
+        preciseOrientation={orientationStatus === "ready"}
         onEnableMotion={() => void enableOrientation()}
       />
 
@@ -257,7 +248,35 @@ export function SkyIDApp() {
             <line x1={selectedPosition.x} y1={selectedPosition.y + 34} x2={viewport.width / 2} y2={viewport.height - 214} />
           </svg>
         ) : null}
-        {heading === undefined ? (
+        {needsLocation ? (
+          <section className="live-state glass-strong" role={locationStatus === "denied" ? "alert" : "status"} aria-live="polite">
+            <span className="live-state-icon"><LocationIcon width={24} height={24} /></span>
+            <p className="eyebrow">LIVE LOCATION</p>
+            <strong>{locationStatus === "locating" ? "Finding your location" : "Location is required"}</strong>
+            <small>
+              {locationStatus === "locating"
+                ? "SkyID needs your position to find aircraft nearby."
+                : "Allow location access in your browser settings, then try again."}
+            </small>
+            <button type="button" onClick={() => {
+              setLocationStatus("locating");
+              setLocationRetryKey((key) => key + 1);
+            }}>
+              {locationStatus === "locating" ? "Retry location" : "Try location again"}
+            </button>
+          </section>
+        ) : aircraftDataStatus === "offline" ? (
+          <section className="live-state glass-strong" role="alert" aria-live="assertive">
+            <span className="live-state-icon live-state-error"><LocationIcon width={24} height={24} /></span>
+            <p className="eyebrow">LIVE DATA</p>
+            <strong>Aircraft service unavailable</strong>
+            <small>Your location is ready, but live aircraft positions could not be loaded.</small>
+            <button type="button" onClick={() => {
+              setAircraftDataStatus("loading");
+              setDataRetryKey((key) => key + 1);
+            }}>Try live data again</button>
+          </section>
+        ) : heading === undefined ? (
           <button className="orientation-empty glass" type="button" onClick={() => void enableOrientation()}>
             <span className="orientation-reticle" />
             <strong>Motion tracking is off</strong>
@@ -275,6 +294,8 @@ export function SkyIDApp() {
           showAircraftType={showAircraftType}
           candidateCount={ranked.length}
           onOpenList={() => setAircraftListOpen(true)}
+          emptyEyebrow={emptyCardCopy.eyebrow}
+          emptyTitle={emptyCardCopy.title}
         />
         <BottomControls
           aircraftCount={ranked.length}
@@ -285,16 +306,6 @@ export function SkyIDApp() {
       </div>
 
       {notice ? <div className="notice glass" role="status">{notice}</div> : null}
-      <DesktopSimulator
-        heading={manualHeading}
-        pitch={manualPitch}
-        location={manualLocation}
-        trafficOffset={trafficOffset}
-        onHeadingChange={setManualHeading}
-        onPitchChange={setManualPitch}
-        onLocationChange={setManualLocation}
-        onTrafficOffsetChange={setTrafficOffset}
-      />
       <AircraftList
         open={aircraftListOpen}
         aircraft={ranked}
@@ -305,12 +316,10 @@ export function SkyIDApp() {
       />
       <SettingsSheet
         open={settingsOpen}
-        mode={mode}
         distanceUnit={distanceUnit}
         altitudeUnit={altitudeUnit}
         showAircraftType={showAircraftType}
         showFlightPath={showFlightPath}
-        onModeChange={changeMode}
         onDistanceUnitChange={setDistanceUnit}
         onAltitudeUnitChange={setAltitudeUnit}
         onShowAircraftTypeChange={setShowAircraftType}

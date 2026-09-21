@@ -81,12 +81,12 @@ export function CameraView({ onStatusChange }: CameraViewProps) {
           message={
             status === "requesting"
               ? "Your rear camera is used only as a local live view."
-              : "Camera access is unavailable. Demo traffic and the full matching engine still work."
+              : "Camera access is unavailable. Live aircraft data and direction matching still work."
           }
           primaryLabel={status === "requesting" ? "Please wait" : "Try camera again"}
           onPrimary={() => void startCamera()}
           primaryDisabled={status === "requesting"}
-          secondaryLabel={status === "requesting" ? undefined : "Continue in Demo"}
+          secondaryLabel={status === "requesting" ? undefined : "Continue without camera"}
           onSecondary={() => setDismissed(true)}
         />
       ) : null}

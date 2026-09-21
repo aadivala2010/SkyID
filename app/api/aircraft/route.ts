@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const response = await fetch(`${OPENSKY_URL}?${params}`, {
-      cache: "no-store",
+      next: { revalidate: 10 },
       signal: AbortSignal.timeout(8_000),
       headers: { Accept: "application/json" },
     });

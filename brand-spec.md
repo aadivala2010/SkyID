@@ -29,5 +29,5 @@ SkyID is a camera-first aviation utility. The camera is the canvas; interface ch
 - No gradients, neon glow, giant type, emoji icons, or dashboard chrome.
 - One primary glass card at a time; secondary controls remain compact.
 - Missing live data is labeled unavailable, never inferred.
-- Demo traffic is always identified as DEMO.
+- Aircraft information must come from the live provider; unavailable fields stay labeled unavailable.
 - Respect safe areas, reduced motion, keyboard focus, and 200% text zoom.

@@ -20,6 +20,5 @@ export interface ObserverPosition {
   altitude?: number;
 }
 
-export type DataMode = "demo" | "live";
 export type DistanceUnit = "mi" | "km";
 export type AltitudeUnit = "ft" | "m";

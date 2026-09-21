@@ -180,6 +180,11 @@ input:focus-visible {
   box-shadow: 0 0 0 3px rgba(110, 231, 168, 0.12);
 }
 
+.source-offline .source-dot {
+  background: var(--danger);
+  box-shadow: 0 0 0 3px rgba(255, 142, 142, 0.12);
+}
+
 .gps-label {
   min-width: 0;
   overflow: hidden;
@@ -348,6 +353,39 @@ input:focus-visible {
 
 .orientation-empty strong { font-size: 0.92rem; }
 .orientation-empty small { color: var(--text-secondary); line-height: 1.35; }
+
+.live-state {
+  position: absolute;
+  top: 41%;
+  left: 50%;
+  display: flex;
+  width: min(82%, 320px);
+  min-height: 196px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 20px;
+  transform: translate(-50%, -50%);
+  border-radius: 24px;
+  text-align: center;
+}
+
+.live-state-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border: 1px solid rgba(139, 199, 255, 0.42);
+  border-radius: 14px;
+  color: var(--accent);
+  background: rgba(139, 199, 255, 0.08);
+}
+
+.live-state-error { color: var(--danger); border-color: rgba(255, 142, 142, 0.42); }
+.live-state strong { font-size: 1rem; }
+.live-state small { max-width: 260px; color: var(--text-secondary); line-height: 1.4; }
+.live-state button { min-height: 44px; margin-top: 3px; padding: 0 16px; border: 0; border-radius: 14px; background: var(--accent); color: #07111b; font-size: .8rem; font-weight: 700; }
 
 .orientation-reticle {
   width: 28px;
@@ -589,7 +627,7 @@ input:focus-visible {
 
 .sheet-grabber { width: 36px; height: 4px; margin: 2px auto 17px; border-radius: 2px; background: rgba(255,255,255,.28); }
 .sheet-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 13px; }
-.sheet-header h2, .simulator-header h2 { margin: 4px 0 0; font-size: 1.25rem; letter-spacing: -.035em; }
+.sheet-header h2 { margin: 4px 0 0; font-size: 1.25rem; letter-spacing: -.035em; }
 .icon-button { display: grid; width: 44px; height: 44px; place-items: center; border: 1px solid var(--hairline); border-radius: 50%; background: rgba(255,255,255,.06); }
 .aircraft-list { display: grid; gap: 7px; }
 .aircraft-row { display: flex; min-height: 64px; align-items: center; gap: 11px; padding: 8px 10px; border: 1px solid transparent; border-radius: 17px; background: rgba(255,255,255,.045); text-align: left; }
@@ -601,6 +639,11 @@ input:focus-visible {
 .sheet-empty { color: var(--text-secondary); font-size: .85rem; text-align: center; }
 
 .settings-sheet { padding-bottom: calc(var(--safe-bottom) + 24px); }
+.live-source-row { display: flex; min-height: 58px; align-items: center; gap: 12px; margin: 14px 0 17px; padding: 10px 13px; border: 1px solid rgba(110,231,168,.2); border-radius: 18px; background: rgba(110,231,168,.05); }
+.live-source-row > .source-dot { flex: 0 0 auto; background: var(--live); box-shadow: 0 0 0 3px rgba(110,231,168,.12); }
+.live-source-row > span:last-child { display: flex; flex-direction: column; gap: 3px; }
+.live-source-row strong { font-size: .84rem; }
+.live-source-row small { color: var(--text-secondary); font-size: .68rem; }
 .setting-group { margin: 14px 0 17px; }
 .setting-label { display: block; margin: 0 0 8px 2px; color: var(--text-secondary); }
 .segmented-control { display: grid; min-height: 50px; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 3px; padding: 3px; border: 1px solid rgba(255,255,255,.1); border-radius: 15px; background: rgba(0,0,0,.22); }
@@ -635,31 +678,8 @@ input:focus-visible {
 .calibration-progress span { display: block; height: 100%; border-radius: inherit; background: var(--accent); transition: width 180ms ease; }
 .calibration-content .primary-button { width: 100%; }
 
-.desktop-simulator { display: none; }
-
 @media (pointer: fine) and (min-width: 800px) {
-  .desktop-simulator {
-    position: absolute;
-    z-index: 24;
-    top: 50%;
-    right: 22px;
-    display: block;
-    width: 282px;
-    padding: 16px;
-    transform: translateY(-50%);
-    border-radius: 24px;
-  }
-
-  .simulator-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 18px; }
-  .simulator-header > span { padding: 5px 8px; border-radius: 8px; background: rgba(139,199,255,.1); color: var(--accent); font-size: .62rem; font-weight: 700; }
-  .desktop-simulator > label { display: grid; gap: 7px; margin: 13px 0; }
-  .desktop-simulator label > span { display: flex; justify-content: space-between; color: var(--text-secondary); font-size: .72rem; }
-  .desktop-simulator label strong { color: var(--text); font-variant-numeric: tabular-nums; }
-  .desktop-simulator input[type="range"] { width: 100%; accent-color: var(--accent); }
-  .coordinate-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px; }
-  .coordinate-grid label { display: grid; gap: 5px; }
-  .coordinate-grid input { width: 100%; min-height: 38px; padding: 0 8px; border: 1px solid var(--hairline); border-radius: 10px; background: rgba(255,255,255,.06); color: var(--text); font-size: .72rem; }
-  .status-wrap { width: min(100% - 660px, 470px); min-width: 390px; }
+  .status-wrap { width: min(100% - 24px, 470px); }
 }
 
 @media (max-height: 700px) {
@@ -677,7 +697,7 @@ input:focus-visible {
   .aircraft-card { min-height: 116px; }
   .bottom-controls { min-height: 52px; }
   .orientation-empty { left: 27%; width: min(42%, 320px); }
-  .desktop-simulator { display: none; }
+  .live-state { left: 25%; width: min(44%, 340px); }
   .permission-card { top: 57%; left: 25%; width: min(44%, 360px); padding: 14px 16px 12px; }
   .permission-icon { width: 40px; height: 40px; margin-bottom: 8px; border-radius: 13px; }
   .permission-card h1 { margin: 5px 0 6px; font-size: 1.08rem; }
