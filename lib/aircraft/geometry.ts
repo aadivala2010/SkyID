@@ -1,6 +1,8 @@
 import type { ObserverPosition } from "@/types/aircraft";
 
 const EARTH_RADIUS_METERS = 6_371_000;
+const MAX_TARGET_HORIZONTAL_ERROR = 8;
+const MAX_TARGET_VERTICAL_ERROR = 8;
 
 const toRadians = (degrees: number) => (degrees * Math.PI) / 180;
 const toDegrees = (radians: number) => (radians * 180) / Math.PI;
@@ -41,6 +43,17 @@ export function calculateDistance(
 
 export function calculateAngularDifference(a: number, b: number): number {
   return Math.abs(((a - b + 540) % 360) - 180);
+}
+
+export function isWithinAimingCone(
+  horizontalDifference: number,
+  verticalDifference: number,
+  hasAltitude: boolean,
+  onGround: boolean,
+): boolean {
+  return hasAltitude && !onGround &&
+    horizontalDifference <= MAX_TARGET_HORIZONTAL_ERROR &&
+    verticalDifference <= MAX_TARGET_VERTICAL_ERROR;
 }
 
 export function calculateSignedAngularDifference(

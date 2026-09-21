@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { calculateAircraftScreenPosition } from "@/lib/ar/projection";
 import { getNearbyAircraft } from "@/lib/aircraft/LiveAircraftProvider";
-import { getMatchLabel, rankAircraftCandidates } from "@/lib/aircraft/matching";
+import { getMatchLabel, isPointingAtAircraft, rankAircraftCandidates } from "@/lib/aircraft/matching";
 import { watchLocation, type LocationReading } from "@/lib/sensors/location";
 import {
   listenToOrientation,
@@ -169,8 +169,8 @@ export function SkyIDApp() {
   );
 
   const selected = manualSelection
-    ? ranked.find((candidate) => candidate.icao24 === selectedIcao) ?? ranked[0]
-    : ranked[0];
+    ? ranked.find((candidate) => candidate.icao24 === selectedIcao)
+    : ranked.find((candidate) => isPointingAtAircraft(candidate));
   const matchLabel = getMatchLabel(selected, ranked.find((candidate) => candidate.icao24 !== selected?.icao24));
   const positioned = useMemo(
     () => heading === undefined
@@ -218,7 +218,11 @@ export function SkyIDApp() {
       ? { eyebrow: "LIVE DATA", title: "Loading nearby aircraft" }
       : aircraftDataStatus === "offline"
         ? { eyebrow: "LIVE DATA", title: "Aircraft data unavailable" }
-        : { eyebrow: "SCANNING SKY", title: "No live aircraft nearby" };
+        : heading === undefined
+          ? { eyebrow: "MOTION REQUIRED", title: "Enable motion to identify" }
+          : ranked.length > 0
+            ? { eyebrow: "POINT TO IDENTIFY", title: "Aim at an aircraft in the sky" }
+            : { eyebrow: "SCANNING SKY", title: "No live aircraft nearby" };
 
   return (
     <main className="app-shell">

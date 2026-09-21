@@ -1,4 +1,5 @@
 import { normalizeHeading } from "@/lib/aircraft/geometry";
+import { calculateRearCameraPitch } from "./orientationMath";
 
 interface IOSDeviceOrientationEvent extends DeviceOrientationEvent {
   webkitCompassHeading?: number;
@@ -44,11 +45,12 @@ export function listenToOrientation(
       const rawHeading =
         iosEvent.webkitCompassHeading ?? 360 - (event.alpha ?? 0) + screenAngle;
       const beta = event.beta ?? 90;
+      const gamma = event.gamma ?? 0;
 
       onReading({
         heading: normalizeHeading(rawHeading),
-        pitch: Math.max(-90, Math.min(90, 90 - beta)),
-        roll: event.gamma ?? 0,
+        pitch: calculateRearCameraPitch(beta, gamma),
+        roll: gamma,
         absolute: Boolean(event.absolute || iosEvent.webkitCompassHeading !== undefined),
         accuracy: iosEvent.webkitCompassAccuracy,
       });

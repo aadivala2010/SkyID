@@ -4,6 +4,7 @@ import {
   calculateBearing,
   calculateDistance,
   calculateElevationAngle,
+  isWithinAimingCone,
 } from "./geometry";
 
 export interface RankedAircraft extends Aircraft {
@@ -13,6 +14,15 @@ export interface RankedAircraft extends Aircraft {
   horizontalDifference: number;
   verticalDifference: number;
   score: number;
+}
+
+export function isPointingAtAircraft(candidate: RankedAircraft | undefined): boolean {
+  return Boolean(candidate && isWithinAimingCone(
+    candidate.horizontalDifference,
+    candidate.verticalDifference,
+    candidate.altitude !== undefined,
+    Boolean(candidate.onGround),
+  ));
 }
 
 export function rankAircraftCandidates(
