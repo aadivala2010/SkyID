@@ -13,7 +13,7 @@ Open `http://localhost:3000`. On iPhone, use the deployed HTTPS page so camera, 
 
 ## Live data
 
-SkyID uses your current location to request anonymous nearby state vectors from the free OpenSky Network endpoint. There is no simulated traffic or fallback data.
+SkyID uses your current location to request nearby live ADS-B positions from the free [adsb.fi](https://adsb.fi) open-data endpoint. There is no simulated traffic or fallback data.
 
 Camera frames stay on the device. Precise location is not stored.
 

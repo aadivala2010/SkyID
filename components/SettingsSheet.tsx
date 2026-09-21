@@ -98,7 +98,7 @@ export function SettingsSheet({
         </div>
         <div className="live-source-row">
           <span className="source-dot" aria-hidden="true" />
-          <span><strong>Live aircraft data</strong><small>Nearby positions from OpenSky</small></span>
+          <span><strong>Live aircraft data</strong><small>Nearby positions from adsb.fi</small></span>
         </div>
         <div className="setting-grid">
           <div className="setting-group">
@@ -140,7 +140,7 @@ export function SettingsSheet({
         </button>
         <div className="about-block">
           <strong>About SkyID</strong>
-          <p>SkyID compares your phone’s direction with open aircraft positions using geometry. It does not use image recognition and never uploads camera footage or stores precise location.</p>
+          <p>SkyID compares your phone’s direction with open aircraft positions from <a href="https://adsb.fi" target="_blank" rel="noreferrer">adsb.fi</a> using geometry. It does not use image recognition and never uploads camera footage or stores precise location.</p>
         </div>
       </section>
     </div>
